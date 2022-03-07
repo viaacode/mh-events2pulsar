@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4"
+serde = { version = "1.0.136", features = ["derive"] }
+xmltree = "0.10.3"
+quick-xml = { version = "0.22", features = [ "serialize" ] }
+chrono = { version = "0.4.19", features = ["serde"] }
