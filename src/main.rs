@@ -5,6 +5,7 @@ use actix_web::{
     web::{self, Data},
     App, HttpResponse, HttpServer, Responder,
 };
+use log::{debug, error, info};
 use xmltree::Element;
 
 mod pulsar_client;
@@ -15,7 +16,16 @@ async fn livez() -> impl Responder {
     HttpResponse::Ok()
 }
 
+/// The event endpoint.
+///
+/// Parse incoming premis events and send them to a pulsar topic defined by the event type.
+///
+/// # Arguments
+///
+/// * `req_body` - The request body of the post call.
+/// * `pulsar_client` - The shared Pulsar client state used to send messages to a topic.
 async fn event(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) -> impl Responder {
+    debug!("Incoming event: {:?}", req_body);
     let xml_result = Element::parse(req_body.as_bytes());
     match xml_result {
         Ok(xml_tree) => {
@@ -25,33 +35,55 @@ async fn event(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) 
                     // Write child element (= the premis event) to a String.
                     let buf = Vec::new();
                     let mut writer = BufWriter::new(buf);
-                    child.as_element().unwrap().write(&mut writer).unwrap();
-                    let premis_event_xml = String::from_utf8(writer.into_inner().unwrap()).unwrap();
-                    // Create the Event struct
-                    let premis_event = Event::new(&premis_event_xml);
-
-                    let xml = premis_event.to_xml();
-                    println!("{xml}");
-
-                    pulsar_client
-                        .lock()
-                        .unwrap()
-                        .send_message(premis_event.event_type, xml)
-                        .await
-                        .unwrap();
+                    match child.as_element().unwrap().write(&mut writer) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            error!("Error: {}", e);
+                            return HttpResponse::InternalServerError().body(e.to_string());
+                        }
+                    }
+                    match String::from_utf8(writer.into_inner().unwrap()) {
+                        Ok(premis_event_xml) => {
+                            // Create the Event struct
+                            let premis_event = Event::new(&premis_event_xml);
+                            // Send message to Pulsar topic.
+                            let send_message_result = pulsar_client
+                                .lock()
+                                .unwrap()
+                                .send_message(
+                                    premis_event.event_type,
+                                    premis_event.event_payload,
+                                )
+                                .await;
+                            match send_message_result {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    error!("Error: {}", e);
+                                    return HttpResponse::InternalServerError().body(e.to_string());
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            error!("Error: {}", e);
+                            return HttpResponse::InternalServerError().body(e.to_string());
+                        }
+                    }
                 }
             }
         }
-        Err(_e) => {
-            //handle_error(e);
-            //consumer.reject(delivery, false)?;
+        Err(e) => {
+            error!("Error: {}", e);
+            return HttpResponse::BadRequest().body(e.to_string());
         }
     }
-    HttpResponse::Ok()
+    HttpResponse::Ok().finish()
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    //Initialize the logger
+    env_logger::init();
+
     // Get our configuration from the environment
     // The necessary environment variables can be found in the `.env` file
     let config = match envy::from_env::<Config>() {
@@ -62,8 +94,9 @@ async fn main() -> std::io::Result<()> {
     // Intanstiate a Pulsar client to pass as a shared mutable state.
     let pulsar_client = PulsarClient::new(&config).await.unwrap();
     let client = Arc::new(Mutex::new(pulsar_client));
+    info!("Started the Pulsar client.");
     // Create the HTTP server.
-    HttpServer::new(move || {
+    let result= HttpServer::new(move || {
         App::new()
             .app_data(Data::from(client.clone()))
             .route("/livez", web::get().to(livez))
@@ -71,7 +104,9 @@ async fn main() -> std::io::Result<()> {
     })
     .bind(("127.0.0.1", 8080))?
     .run()
-    .await
+    .await;
+    info!("Started the HTTP server on '127.0.0.1:9090'.");
+    result
 }
 
 #[cfg(test)]
