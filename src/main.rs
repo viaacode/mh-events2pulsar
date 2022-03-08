@@ -99,7 +99,7 @@ async fn main() -> std::io::Result<()> {
             .route("/livez", web::get().to(livez))
             .route("/events", web::post().to(events))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await;
     info!("Started the HTTP server on '127.0.0.1:8080'.");
