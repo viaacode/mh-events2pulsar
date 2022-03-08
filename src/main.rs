@@ -9,7 +9,7 @@ use xmltree::Element;
 
 mod pulsar_client;
 use crate::pulsar_client::PulsarClient;
-use mh_events2pulsar::Event;
+use mh_events2pulsar::*;
 
 async fn livez() -> impl Responder {
     HttpResponse::Ok()
@@ -52,8 +52,15 @@ async fn event(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) 
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Get our configuration from the environment
+    // The necessary environment variables can be found in the `.env` file
+    let config = match envy::from_env::<Config>() {
+        Ok(config) => config,
+        Err(error) => panic!("{:#?}", error),
+    };
+
     // Intanstiate a Pulsar client to pass as a shared mutable state.
-    let pulsar_client = PulsarClient::new().await.unwrap();
+    let pulsar_client = PulsarClient::new(&config).await.unwrap();
     let client = Arc::new(Mutex::new(pulsar_client));
     // Create the HTTP server.
     HttpServer::new(move || {

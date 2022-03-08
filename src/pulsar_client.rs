@@ -4,6 +4,8 @@ use pulsar::{
 };
 use serde::{Deserialize, Serialize};
 
+use mh_events2pulsar::Config;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     pub data: String,
@@ -23,9 +25,10 @@ pub struct PulsarClient {
 }
 
 impl PulsarClient {
-    pub async fn new() -> Result<Self, PulsarError> {
+    pub async fn new(config: &Config) -> Result<Self, PulsarError> {
         // Deserialize XML to struct
-        let pulsar: Pulsar<_> = Pulsar::builder("pulsar://127.0.0.0:6650", TokioExecutor).build().await?;
+        let addr = format!("pulsar://{}:{}", config.pulsar_host, config.pulsar_port);
+        let pulsar: Pulsar<_> = Pulsar::builder(addr, TokioExecutor).build().await?;
         let producer = pulsar
             .producer()
             .with_name("mh-events2pulsar")

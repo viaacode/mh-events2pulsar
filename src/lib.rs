@@ -4,6 +4,24 @@ use std::str;
 use quick_xml::de::from_str;
 use serde::{Deserialize, Serialize};
 
+// Config
+#[derive(Deserialize, Debug)]
+pub struct Config {
+    #[serde(default = "default_pulsar_host")]
+    pub pulsar_host: String,
+    #[serde(default = "default_pulsar_port")]
+    pub pulsar_port: String,
+}
+
+
+fn default_pulsar_host() -> String {
+    String::from("localhost")
+}
+
+fn default_pulsar_port() -> String {
+    String::from("6650")
+}
+
 // XML structs
 #[derive(Serialize, Deserialize, Debug)]
 enum EventOutcomeStatus {

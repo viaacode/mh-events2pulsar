@@ -12,6 +12,7 @@ xmltree = "0.10.3"
 quick-xml = { version = "0.22", features = [ "serialize" ] }
 chrono = { version = "0.4.19", features = ["serde"] }
 pulsar = "4.1.1"
+envy = "0.4.2"
 
 [patch.crates-io]
 pulsar = { git = 'https://github.com/RemiKalbe/pulsar-rs' }
