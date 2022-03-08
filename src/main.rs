@@ -1,15 +1,21 @@
 use std::io::BufWriter;
+use std::sync::{Arc, Mutex};
 
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{
+    web::{self, Data},
+    App, HttpResponse, HttpServer, Responder,
+};
 use xmltree::Element;
 
-use mh_events2pulsar::*;
+mod pulsar_client;
+use crate::pulsar_client::PulsarClient;
+use mh_events2pulsar::Event;
 
 async fn livez() -> impl Responder {
     HttpResponse::Ok()
 }
 
-async fn event(req_body: String) -> impl Responder {
+async fn event(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) -> impl Responder {
     let xml_result = Element::parse(req_body.as_bytes());
     match xml_result {
         Ok(xml_tree) => {
@@ -26,6 +32,13 @@ async fn event(req_body: String) -> impl Responder {
 
                     let xml = premis_event.to_xml();
                     println!("{xml}");
+
+                    pulsar_client
+                        .lock()
+                        .unwrap()
+                        .send_message(premis_event.event_type, xml)
+                        .await
+                        .unwrap();
                 }
             }
         }
@@ -39,8 +52,13 @@ async fn event(req_body: String) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    // Intanstiate a Pulsar client to pass as a shared mutable state.
+    let pulsar_client = PulsarClient::new().await.unwrap();
+    let client = Arc::new(Mutex::new(pulsar_client));
+    // Create the HTTP server.
+    HttpServer::new(move || {
         App::new()
+            .app_data(Data::from(client.clone()))
             .route("/livez", web::get().to(livez))
             .route("/event", web::post().to(event))
     })
@@ -70,6 +88,7 @@ mod tests {
     #[actix_web::test]
     async fn test_event() {
         // Arrange
+        // XML body to receive
         let body = r##"<events>
             <premis:event xmlns:premis="info:lc/xmlns/premis-v2">
             <premis:eventIdentifier>
@@ -96,7 +115,10 @@ mod tests {
             </premis:linkingObjectIdentifier>
             </premis:event>
         </events>"##;
+        // Mock the Pulsar client
+        // TODO
 
+        // Create a HTTP test service
         let mut app = test::init_service(App::new().route("/event", web::post().to(event))).await;
         // Act
         let req = test::TestRequest::post()

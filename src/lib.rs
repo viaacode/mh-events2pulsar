@@ -1,5 +1,5 @@
-use std::str;
 use chrono::{DateTime, Utc};
+use std::str;
 
 use quick_xml::de::from_str;
 use serde::{Deserialize, Serialize};
@@ -74,6 +74,7 @@ impl Event {
         self.event_payload.clone()
     }
 }
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
@@ -109,17 +110,12 @@ mod tests {
         // Act
         let event = Event::new(body);
         // Assert
+        assert_eq!(event.event_type, "FLOW.ARCHIVED",);
         assert_eq!(
-            event.event_type, "FLOW.ARCHIVED",
+            event.event_timestamp,
+            DateTime::<Utc>::from_str("2019-03-30T05:28:40Z").unwrap(),
         );
-        assert_eq!(
-            event.event_timestamp, DateTime::<Utc>::from_str("2019-03-30T05:28:40Z").unwrap(),
-        );
-        assert_eq!(
-            event.event_payload, body,
-        );
-        assert_eq!(
-            event.to_xml(), body,
-        );
+        assert_eq!(event.event_payload, body,);
+        assert_eq!(event.to_xml(), body,);
     }
 }
