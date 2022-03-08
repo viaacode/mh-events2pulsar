@@ -13,7 +13,6 @@ pub struct Config {
     pub pulsar_port: String,
 }
 
-
 fn default_pulsar_host() -> String {
     String::from("localhost")
 }
@@ -85,11 +84,21 @@ impl Event {
         let mut event: Event = from_str(body).unwrap();
         // Add the body XMl as payload to the struct
         event.event_payload = body.to_string();
-        return event;
+        event
     }
 
     pub fn to_xml(&self) -> String {
         self.event_payload.clone()
+    }
+
+    pub fn subject(&self) -> String {
+        for x in &self.linking_object_identifier {
+            if x.linking_object_identifier_type == "EXTERNAL_ID" {
+                return x.linking_object_identifier_value.clone();
+            }
+        }
+        // No subject found. Should not happen, but let's not panic.
+        String::from("no_subject_found")
     }
 }
 

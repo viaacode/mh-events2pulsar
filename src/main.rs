@@ -10,7 +10,7 @@ use xmltree::Element;
 
 mod pulsar_client;
 use crate::pulsar_client::PulsarClient;
-use mh_events2pulsar::*;
+use mh_events2pulsar::{Config, Event};
 
 async fn livez() -> impl Responder {
     HttpResponse::Ok()
@@ -51,8 +51,8 @@ async fn event(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) 
                                 .lock()
                                 .unwrap()
                                 .send_message(
-                                    premis_event.event_type,
-                                    premis_event.event_payload,
+                                    &premis_event.event_type,
+                                    &premis_event
                                 )
                                 .await;
                             match send_message_result {
@@ -105,7 +105,7 @@ async fn main() -> std::io::Result<()> {
     .bind(("127.0.0.1", 8080))?
     .run()
     .await;
-    info!("Started the HTTP server on '127.0.0.1:9090'.");
+    info!("Started the HTTP server on '127.0.0.1:8080'.");
     result
 }
 
