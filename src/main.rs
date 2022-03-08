@@ -24,7 +24,7 @@ async fn livez() -> impl Responder {
 ///
 /// * `req_body` - The request body of the post call.
 /// * `pulsar_client` - The shared Pulsar client state used to send messages to a topic.
-async fn event(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) -> impl Responder {
+async fn events(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) -> impl Responder {
     debug!("Incoming event: {:?}", req_body);
     let xml_result = Element::parse(req_body.as_bytes());
     match xml_result {
@@ -50,10 +50,7 @@ async fn event(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>) 
                             let send_message_result = pulsar_client
                                 .lock()
                                 .unwrap()
-                                .send_message(
-                                    &premis_event.event_type,
-                                    &premis_event
-                                )
+                                .send_message(&premis_event.event_type, &premis_event)
                                 .await;
                             match send_message_result {
                                 Ok(_) => {}
@@ -96,11 +93,11 @@ async fn main() -> std::io::Result<()> {
     let client = Arc::new(Mutex::new(pulsar_client));
     info!("Started the Pulsar client.");
     // Create the HTTP server.
-    let result= HttpServer::new(move || {
+    let result = HttpServer::new(move || {
         App::new()
             .app_data(Data::from(client.clone()))
             .route("/livez", web::get().to(livez))
-            .route("/event", web::post().to(event))
+            .route("/events", web::post().to(events))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
@@ -161,10 +158,10 @@ mod tests {
         // TODO
 
         // Create a HTTP test service
-        let mut app = test::init_service(App::new().route("/event", web::post().to(event))).await;
+        let mut app = test::init_service(App::new().route("/events", web::post().to(events))).await;
         // Act
         let req = test::TestRequest::post()
-            .uri("/event")
+            .uri("/events")
             .set_payload(body)
             .to_request();
         let resp = test::call_service(&mut app, req).await;
