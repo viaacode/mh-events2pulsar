@@ -93,7 +93,8 @@ async fn main() -> std::io::Result<()> {
     let client = Arc::new(Mutex::new(pulsar_client));
     info!("Started the Pulsar client.");
     // Create the HTTP server.
-    let result = HttpServer::new(move || {
+    info!("Starting the HTTP server on '127.0.0.1:8080'.");
+    HttpServer::new(move || {
         App::new()
             .app_data(Data::from(client.clone()))
             .route("/livez", web::get().to(livez))
@@ -101,9 +102,7 @@ async fn main() -> std::io::Result<()> {
     })
     .bind(("0.0.0.0", 8080))?
     .run()
-    .await;
-    info!("Started the HTTP server on '127.0.0.1:8080'.");
-    result
+    .await
 }
 
 #[cfg(test)]
