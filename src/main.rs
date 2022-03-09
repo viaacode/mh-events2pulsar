@@ -53,7 +53,9 @@ async fn events(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>)
                                 .send_message(&premis_event.event_type, &premis_event)
                                 .await;
                             match send_message_result {
-                                Ok(_) => {}
+                                Ok(_) => {
+                                    info!("Sent event on topic: '{}'.", &premis_event.event_type);
+                                }
                                 Err(e) => {
                                     error!("Error: {}", e);
                                     return HttpResponse::InternalServerError().body(e.to_string());

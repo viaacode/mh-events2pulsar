@@ -8,7 +8,7 @@ pipeline {
         metadata:
           labels:
             component: builder
-            lang: ${getBaseImageName()}
+            lang: Rust
             app: mh-events2pulsar
         spec:
           containers:
