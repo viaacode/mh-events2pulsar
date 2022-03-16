@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Webhook callback that receives the premis events from MediaHaven and store them in Apache Pulsar.
+Webhook callback that receives premis events from MediaHaven and stores them in Apache Pulsar.
 The premis events are split up per type, meaning that every type corresponds with a Pulsar topic.
 So a Pulsar topic contains all the events of the same event type.
 
