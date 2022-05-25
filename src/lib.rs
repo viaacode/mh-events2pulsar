@@ -11,6 +11,8 @@ pub struct Config {
     pub pulsar_host: String,
     #[serde(default = "default_pulsar_port")]
     pub pulsar_port: String,
+    #[serde(default = "default_pulsar_namespace")]
+    pub pulsar_namespace: String,
 }
 
 fn default_pulsar_host() -> String {
@@ -20,6 +22,11 @@ fn default_pulsar_host() -> String {
 fn default_pulsar_port() -> String {
     String::from("6650")
 }
+
+fn default_pulsar_namespace() -> String {
+    String::from("default")
+}
+
 
 // XML structs
 #[derive(Serialize, Deserialize, Debug)]

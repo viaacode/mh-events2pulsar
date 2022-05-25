@@ -46,11 +46,13 @@ async fn events(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>)
                         Ok(premis_event_xml) => {
                             // Create the Event struct
                             let premis_event = Event::new(&premis_event_xml);
+                            // The topic part in: persistent://{tenant}/{namespace}/{topic}.
+                            let topic = format!("be.mediahaven.{}", &premis_event.event_type.to_lowercase());
                             // Send message to Pulsar topic.
                             let send_message_result = pulsar_client
                                 .lock()
                                 .unwrap()
-                                .send_message(&premis_event.event_type, &premis_event)
+                                .send_message(&topic, &premis_event)
                                 .await;
                             match send_message_result {
                                 Ok(_) => {

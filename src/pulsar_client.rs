@@ -46,6 +46,7 @@ impl SerializeMessage for Message {
 
 pub struct PulsarClient {
     pub producer: MultiTopicProducer<TokioExecutor>,
+    pub namespace: String,
 }
 
 impl PulsarClient {
@@ -53,11 +54,12 @@ impl PulsarClient {
         // Deserialize XML to struct
         let addr = format!("pulsar://{}:{}", config.pulsar_host, config.pulsar_port);
         let pulsar: Pulsar<_> = Pulsar::builder(addr, TokioExecutor).build().await?;
+        let namespace = config.pulsar_namespace.clone();
         let producer = pulsar
             .producer()
             .with_name("mh-events2pulsar")
             .build_multi_topic();
-        Ok(PulsarClient { producer: producer })
+        Ok(PulsarClient { producer: producer, namespace: namespace })
     }
 
     pub async fn send_message(
@@ -67,7 +69,7 @@ impl PulsarClient {
     ) -> Result<SendFuture, pulsar::Error> {
         self.producer
             .send(
-                topic,
+            format!("persistent://public/{}/{}", self.namespace, topic),
                 Message {
                     data: event.to_xml(),
                     event_time: event.event_timestamp,
