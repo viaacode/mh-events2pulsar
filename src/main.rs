@@ -56,7 +56,7 @@ async fn events(req_body: String, pulsar_client: web::Data<Mutex<PulsarClient>>)
                                 .await;
                             match send_message_result {
                                 Ok(_) => {
-                                    info!("Sent event on topic: '{}'.", &premis_event.event_type);
+                                    info!("Sent event on topic: '{}'.", &topic);
                                 }
                                 Err(e) => {
                                     error!("Error: {}", e);
