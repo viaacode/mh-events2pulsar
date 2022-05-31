@@ -30,12 +30,6 @@ fn default_pulsar_namespace() -> String {
 
 // XML structs
 #[derive(Serialize, Deserialize, Debug)]
-enum EventOutcomeStatus {
-    OK,
-    NOK,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct Event {
     #[serde(rename = "eventIdentifier")]
     event_identifier: EventIdentifier,
