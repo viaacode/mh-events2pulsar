@@ -4,6 +4,7 @@ use pulsar::{
     Error as PulsarError, MultiTopicProducer, Pulsar, SerializeMessage, TokioExecutor,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::{json, to_vec};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -18,27 +19,40 @@ pub struct Message {
 
 impl SerializeMessage for Message {
     fn serialize_message(input: Self) -> Result<producer::Message, PulsarError> {
-        let payload = input.data.into_bytes();
         let event_time = input.event_time;
         let properties = HashMap::from([
-            ("type".to_string(), "structured".to_string()),
-            ("source".to_string(), "mh-events2pulsar".to_string()),
-            ("subject".to_string(), input.subject),
-            ("outcome".to_string(), "OK".to_string()),
+            (String::from("type"), String::from("structured")),
+            (String::from("source"), String::from("mh-events2pulsar")),
+            (String::from("subject"), input.subject),
+            (String::from("outcome"), String::from("success")),
             (
-                "correlation_id".to_string(),
+                String::from("correlation_id"),
                 Uuid::new_v4().to_simple().to_string(),
             ),
-            ("specversion".to_string(), "1.0".to_string()),
+            (String::from("specversion"), String::from("1.0")),
             (
-                "datacontenttype".to_string(),
-                "application/cloudevents+json; charset=utf-8".to_string(),
+                String::from("content_type"),
+                String::from("application/cloudevents+json; charset=utf-8"),
             ),
         ]);
+        let payload = json!({
+            "datacontenttype": "application/json",
+            "data": {
+                "premis": input.data,
+            },
+            "type": &properties["type"],
+            "source": &properties["source"],
+            "subject": &properties["subject"],
+            "outcome": &properties["outcome"],
+            "correlation_id": &properties["correlation_id"],
+            "specversion": &properties["specversion"],
+            "content_type": &properties["content_type"],
+        });
+
         Ok(producer::Message {
-            payload: payload,
+            payload: to_vec(&payload).unwrap(),
             event_time: Some(event_time.timestamp_millis() as u64),
-            properties: properties,
+            properties,
             ..Default::default()
         })
     }
@@ -59,7 +73,7 @@ impl PulsarClient {
             .producer()
             .with_name("mh-events2pulsar")
             .build_multi_topic();
-        Ok(PulsarClient { producer: producer, namespace: namespace })
+        Ok(PulsarClient { producer, namespace })
     }
 
     pub async fn send_message(
