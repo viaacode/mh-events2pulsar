@@ -1,5 +1,7 @@
 FROM clux/muslrust:1.59.0-stable as builder
 
+RUN apt-get update && apt-get install -y cmake libprotobuf-dev protobuf-compiler
+
 # Make a new group and user so we don't run as root.
 ARG UID=1000
 ARG GID=1000
