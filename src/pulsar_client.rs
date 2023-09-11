@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 use pulsar::{
     producer::{self, SendFuture},
-    Error as PulsarError, MultiTopicProducer, Pulsar, SerializeMessage, TokioExecutor,
+    ConnectionRetryOptions, Error as PulsarError, MultiTopicProducer, Pulsar, SerializeMessage,
+    TokioExecutor,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, to_vec};
@@ -67,13 +68,19 @@ impl PulsarClient {
     pub async fn new(config: &Config) -> Result<Self, PulsarError> {
         // Deserialize XML to struct
         let addr = format!("pulsar://{}:{}", config.pulsar_host, config.pulsar_port);
-        let pulsar: Pulsar<_> = Pulsar::builder(addr, TokioExecutor).build().await?;
+        let pulsar: Pulsar<_> = Pulsar::builder(addr, TokioExecutor)
+            .with_connection_retry_options(ConnectionRetryOptions::default())
+            .build()
+            .await?;
         let namespace = config.pulsar_namespace.clone();
         let producer = pulsar
             .producer()
             .with_name("mh-events2pulsar")
             .build_multi_topic();
-        Ok(PulsarClient { producer, namespace })
+        Ok(PulsarClient {
+            producer,
+            namespace,
+        })
     }
 
     pub async fn send_message(
@@ -83,7 +90,7 @@ impl PulsarClient {
     ) -> Result<SendFuture, pulsar::Error> {
         self.producer
             .send(
-            format!("persistent://public/{}/{}", self.namespace, topic),
+                format!("persistent://public/{}/{}", self.namespace, topic),
                 Message {
                     data: event.to_xml(),
                     event_time: event.event_timestamp,

@@ -27,7 +27,6 @@ fn default_pulsar_namespace() -> String {
     String::from("default")
 }
 
-
 // XML structs
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Event {
