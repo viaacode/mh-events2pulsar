@@ -104,6 +104,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(Data::from(client.clone()))
+            .app_data(web::PayloadConfig::new(1000000)) // Set limit size to 1MB
             .route("/livez", web::get().to(livez))
             .route("/events", web::post().to(events))
     })
