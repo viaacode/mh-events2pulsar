@@ -1,4 +1,4 @@
-FROM clux/muslrust:1.75.0-stable as builder
+FROM clux/muslrust:1.83.0-stable as builder
 
 RUN apt-get update && apt-get install -y cmake libprotobuf-dev protobuf-compiler
 
