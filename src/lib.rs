@@ -41,7 +41,7 @@ pub struct Event {
     #[serde(rename = "eventOutcomeInformation")]
     event_outcome_information: EventOutcomeInformation,
     #[serde(rename = "linkingAgentIdentifier")]
-    linking_agent_identifier: LinkingAgentIdentifier,
+    linking_agent_identifier: Vec<LinkingAgentIdentifier>,
     #[serde(rename = "linkingObjectIdentifier")]
     linking_object_identifier: Vec<LinkingObjectIdentifier>,
     #[serde(skip_deserializing)]
@@ -235,6 +235,52 @@ mod tests {
         assert_eq!(
             event.event_timestamp,
             DateTime::<Utc>::from_str("2024-08-12T15:01:08.751Z").unwrap(),
+        );
+        assert_eq!(event.event_payload, body,);
+        assert_eq!(event.to_xml(), body,);
+    }
+
+    #[test]
+    fn test_trigger_direct_download_access() {
+        // Arrange
+        let body = r##"<premis:event>
+    		<premis:eventIdentifier>
+    			<premis:eventIdentifierType>MEDIAHAVEN_EVENT</premis:eventIdentifierType>
+    			<premis:eventIdentifierValue>111111111</premis:eventIdentifierValue>
+    		</premis:eventIdentifier>
+    		<premis:eventType>RECORDS.DIRECT_DOWNLOAD.ACCESS</premis:eventType>
+    		<premis:eventDateTime>2026-04-14T07:31:38.435Z</premis:eventDateTime>
+    		<premis:eventDetailInformation>
+    			<premis:eventDetail/>
+    		</premis:eventDetailInformation>
+    		<premis:eventOutcomeInformation>
+    			<premis:eventOutcome>OK</premis:eventOutcome>
+    		</premis:eventOutcomeInformation>
+    		<premis:linkingAgentIdentifier>
+    			<premis:linkingAgentIdentifierType>MEDIAHAVEN_USER</premis:linkingAgentIdentifierType>
+    			<premis:linkingAgentIdentifierValue>6ca2c109-0744-4f19-93a6-01b2bd893109</premis:linkingAgentIdentifierValue>
+    		</premis:linkingAgentIdentifier>
+    		<premis:linkingAgentIdentifier>
+    			<premis:linkingAgentIdentifierType>MEDIAHAVEN_USER_SOURCE</premis:linkingAgentIdentifierType>
+    			<premis:linkingAgentIdentifierValue>a3cac142-83df-4848-9842-389be8880de1</premis:linkingAgentIdentifierValue>
+    		</premis:linkingAgentIdentifier>
+    		<premis:linkingObjectIdentifier>
+    			<premis:linkingObjectIdentifierType>MEDIAHAVEN_ID</premis:linkingObjectIdentifierType>
+    			<premis:linkingObjectIdentifierValue>a1b2c3</premis:linkingObjectIdentifierValue>
+    		</premis:linkingObjectIdentifier>
+    		<premis:linkingObjectIdentifier>
+    			<premis:linkingObjectIdentifierType>EXTERNAL_ID</premis:linkingObjectIdentifierType>
+    			<premis:linkingObjectIdentifierValue>b1</premis:linkingObjectIdentifierValue>
+    		</premis:linkingObjectIdentifier>
+    	</premis:event>"##;
+
+        // Act
+        let event = Event::new(body);
+        // Assert
+        assert_eq!(event.event_type, "RECORDS.DIRECT_DOWNLOAD.ACCESS",);
+        assert_eq!(
+            event.event_timestamp,
+            DateTime::<Utc>::from_str("2026-04-14T07:31:38.435Z").unwrap(),
         );
         assert_eq!(event.event_payload, body,);
         assert_eq!(event.to_xml(), body,);
